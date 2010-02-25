@@ -1,0 +1,11 @@
+#!/bin/bash
+
+project=$1
+
+if [ -z ${project} ]; then
+    project=`expr "$PWD" : "$WORKSPACE/\([^/]*\)"`
+fi
+
+pushd ${WORKSPACE}/${project}
+appoff ${project} && mvn clean install && appon ${project}
+popd

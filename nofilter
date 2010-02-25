@@ -1,0 +1,9 @@
+#!/bin/bash
+
+type=$1
+if [ $1 = "js" ]
+then
+    type="javascript"
+fi
+
+java -jar ~/bin/jmx.jar - localhost:1099 DestinationSearch:Context=${2}ds,Class=ConcatenatingFilterSet,name=${type}FilterSet setFilteringEnabledString=false

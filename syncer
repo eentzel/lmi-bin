@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# $1: project name
+# $2: project location
+#CATALINA_HOME=/localtmp/apps/tomcat
+project_name=$1
+project_loc=$2
+skip_list=$3
+project_name=${project_name:=$CLIENT}
+project_loc=${project_loc:=${WORKSPACE}/$project_name}
+
+    echo "$0:"
+    echo "project_name=${project_name}"
+    echo "project_loc=${project_loc}"
+    echo ""
+
+# extra flags
+FLAGS=""
+
+if [[ -d ${CATALINA_HOME}/webapps/${project_name}DS/ ]]; then
+    warfile=${project_name}DS
+    rsbean=${project_name}ds
+elif [[ -d ${CATALINA_HOME}/webapps/${project_name}/ ]]; then
+    warfile=${project_name}
+    rsbean=${project_name}ds
+#elif [[ -d ${CATALINA_HOME}/webapps/lmDS/ ]]; then
+    #warfile=lmDS
+    #rsbean=lmds
+elif [[ -d ${CATALINA_HOME}/webapps/ROOT/ ]]; then
+    warfile=ROOT
+    rsbean=ROOT
+else
+    echo "Invalid project info"
+    echo "project_name=${project_name}"
+    echo "project_loc=${project_loc}"
+    echo "CATALINA_HOME=${CATALINA_HOME}"
+    exit 1;
+fi
+
+skip_files="--exclude=.svn/"
+for f in ${skip_list}; do
+    skip_files="${skip_files} --exclude=$f"
+done
+
+
+echo "${project_loc} -> ${CATALINA_HOME}/webapps/${warfile}"
+OUT=$(/usr/bin/rsync $FLAGS -rc --delay-updates --progress ${skip_files} ${project_loc}/src/main/webapp/    ${CATALINA_HOME}/webapps/${warfile}/)
+echo "$OUT"
+/usr/bin/rsync $FLAGS -rc --delay-updates --progress ${skip_files} ${project_loc}/src/main/resources/ ${CATALINA_HOME}/webapps/${warfile}/WEB-INF/classes/
+
+RSFILE="ResourceSet-servlet.xml"
+if [[ "${OUT}" =~ "${RSFILE}" ]]; then
+   echo ""
+   echo "Found ${RSFILE}, processing"
+   file=`find ${project_loc} -name ${RSFILE}`;
+   echo "Linting ${file}..."
+   xmllint --noout ${file}
+   if [[ $? != 0 ]]; then
+       echo "Syntax error in ${file}; exiting without reloading!"
+       echo ""
+       exit;
+   fi
+   echo "No syntax errors in ${RSFILE}, reloading resourceSets"
+   java -jar /localtmp/projects/bin/jmx.jar - localhost:1099 DestinationSearch:Context=${rsbean},name=ResourceSet reloadConfiguration
+fi

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+if [ -n $1 ]
+then
+    ln -s $WORKSPACE/${1}/target/${1}DS $CATALINA_HOME/webapps/${1}DS
+fi

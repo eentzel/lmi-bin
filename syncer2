@@ -1,0 +1,88 @@
+#!/bin/bash
+
+servlet_name=${PRJ_NAME:=${TM_PROJECT_DIRECTORY##*/}}
+servlet_name=${servlet_name:=$1}
+
+#
+# make sure we're in a project, and thus wanna try to sync
+#
+if [ -z "$servlet_name" ]
+then
+    ## not in a project so exit quickly and quietly
+    exit
+fi
+
+#
+# Try to find the destination directory
+#
+if [[ -d ${CATALINA_HOME}/webapps/${servlet_name}/ ]]
+then
+    servlet_path=${CATALINA_HOME}/webapps/${servlet_name}/
+elif [[ -d ${CATALINA_HOME}/webapps/${servlet_name}DS/ ]]
+then
+    servlet_path=${CATALINA_HOME}/webapps/${servlet_name}DS/
+elif [[ ( "$servlet_name" == "ds-core-web" || \
+         "$servlet_name" == "ds-core-lib" ) \
+       && -d ${CATALINA_HOME}/webapps/lmDS/ ]]
+then
+    servlet_path=${CATALINA_HOME}/webapps/lmDS/
+elif ! [[ -z "$PRJ_NAME" ]]
+then
+    echo project "$PRJ_NAME" is not deployed
+    exit 1;
+else
+    exit    
+fi
+
+#
+# find the root of the project
+#
+project_path=${TM_PROJECT_DIRECTORY:=$2}
+pushd $project_path > /dev/null
+while ! [ -d src ] && [ $(pwd) != "/" ]; do cd ..; done
+project_path=$(pwd)
+popd > /dev/null
+if [ $project_path == "/" ]
+then
+    echo I do not understand this projects directory structure
+    exit 1
+fi
+
+#
+# find modified files and sync them
+#
+if [[ -d ${project_path}/src/main/webapp ]]
+then
+    pushd ${project_path}/src/main/webapp > /dev/null
+    files=`svn status | grep -v ^D | cut -c8- | sort -u`
+    for s in $files
+    do
+        if [ -d $s ]
+        then
+            rsync -rc $s ${servlet_path}${s%/*} --exclude=.svn --out-format="sync: %f"
+        elif  ! [ -e ${servlet_path}$s ] || [ "$(sum $s | cut -d' ' -f1-2)" != "$(sum ${servlet_path}$s | cut -d' ' -f1-2)" ]
+        then
+            echo sync: $s
+            cp $s ${servlet_path}$s
+        fi
+    done
+    popd > /dev/null
+fi
+
+if [[ -d ${project_path}/src/main/resources ]]
+then
+    pushd ${project_path}/src/main/resources > /dev/null
+    files=`svn status | grep -v ^D | grep -v application-config | cut -c8- | sort -u`
+    for s in $files
+    do
+        if [ "$(sum $s | cut -d' ' -f1-2)" != "$(sum ${servlet_path}WEB-INF/classes/$s | cut -d' ' -f1-2)" ]
+        then
+            echo sync: $s
+            cp $s ${servlet_path}WEB-INF/classes
+        fi
+    done
+    popd > /dev/null
+fi
+
+exit
+

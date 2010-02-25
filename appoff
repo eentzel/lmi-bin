@@ -1,0 +1,8 @@
+#!/bin/bash
+
+filename=$CATALINA_HOME/webapps/${1}DS
+
+if [ -h $filename ]
+then
+    rm $filename
+fi

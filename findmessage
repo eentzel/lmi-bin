@@ -1,0 +1,14 @@
+#!/bin/bash
+
+message=$1
+project=$2
+
+if [ -z ${project} ]; then
+    project=`expr "$PWD" : "$WORKSPACE/\([^/]*\)"`
+fi
+
+search_dirs="ds-core-lib ed-core ed-tas-core-lib $project"
+
+cd $WORKSPACE
+propfiles=$(find -L $search_dirs -name '*messages*.properties' -not -path "[^/]*/target*")
+grep -i -e "$message" $propfiles
