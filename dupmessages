@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+
+# Usage:
+# dupmessages file1 file2
+# Given two message files, prints all messages that are in file2 but
+# not in file1
+
+my %props = ();
+
+open(INFILE, $ARGV[0]);
+while (<INFILE>) {
+    if ($_ !~ /([^=]*)=/) {
+        next;
+    }
+    $props{ $1 } = 1;
+}
+close(INFILE);
+
+open(INFILE, $ARGV[1]);
+while (<INFILE>) {
+    if ($_ !~ /([^=]*)=/) {
+        next;
+    }
+    print $_ unless $props{ $1 };
+}
+close(INFILE);
