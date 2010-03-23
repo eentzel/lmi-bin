@@ -6,4 +6,4 @@ then
     type="javascript"
 fi
 
-java -jar ~/bin/jmx.jar - localhost:1099 DestinationSearch:Context=${2}ds,Class=ConcatenatingFilterSet,name=${type}FilterSet setFilteringEnabledString=true
+java -jar ~/bin/jmx.jar - localhost:1099 DestinationSearch:Context=${2},Class=ConcatenatingFilterSet,name=${type}FilterSet setFilteringEnabledString=true
